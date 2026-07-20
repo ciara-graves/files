@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garden Bed Planner</title>
+<style>
+  #garden-root {
+    --soil: #4a3728;
+    --soil-dark: #362718;
+    --wood: #8a5a3b;
+    --wood-dark: #6b4429;
+    --moss: #4f6b3a;
+    --moss-light: #7a9c5e;
+    --cream: #f7f2e7;
+    --sky: #d9e8e0;
+    --sun: #e2a940;
+    --ink: #2c2418;
+    --danger: #b5533f;
+
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--sky);
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(255,255,255,0.5) 0%, transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(255,255,255,0.35) 0%, transparent 45%);
+    color: var(--ink);
+    padding: 28px 20px 60px;
+    border-radius: 16px;
+    box-sizing: border-box;
+    min-height: 100%;
+    position: relative;
+    overflow: visible;
+  }
+
+  #garden-root * { box-sizing: border-box; }
+
+  .g-header { text-align: center; margin-bottom: 22px; }
+  .g-title {
+    font-family: 'Caveat', cursive;
+    font-size: 46px;
+    font-weight: 700;
+    color: var(--moss);
+    margin: 0;
+    line-height: 1;
+  }
+  .g-subtitle { font-size: 13px; color: #5a6b4f; margin: 6px 0 0; letter-spacing: 0.02em; }
+
+  .g-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .g-btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 16px;
+    cursor: pointer;
+    background: var(--cream);
+    color: var(--moss);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .g-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.18); }
+  .g-btn:active { transform: translateY(0); }
+  .g-btn.primary { background: var(--moss); color: var(--cream); }
+  .g-btn.danger { background: var(--danger); color: var(--cream); }
+  .g-save-status { font-size: 11.5px; color: #5a6b4f; align-self: center; min-width: 70px; text-align: center; opacity: 0.85; }
+
+  /* Plant palette */
+  .g-palette-wrap {
+    background: rgba(255,255,255,0.55);
+    border-radius: 14px;
+    padding: 14px 14px 14px;
+    margin-bottom: 26px;
+    backdrop-filter: blur(2px);
+  }
+  .g-palette-row-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 10px 2px;
+  }
+  .g-palette-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--moss);
+    font-weight: 700;
+    margin: 0;
+  }
+  .g-add-plant-toggle {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cream);
+    background: var(--moss);
+    border: none;
+    border-radius: 999px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .g-add-plant-toggle:hover { background: #445e33; }
+  .g-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .g-plant-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--cream);
+    border-radius: 10px;
+    padding: 7px 10px 7px 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    border: 1.5px solid transparent;
+    position: relative;
+  }
+  .g-plant-chip .g-emoji { font-size: 18px; line-height: 1; }
+  .g-plant-chip:active { cursor: grabbing; }
+  .g-plant-chip.custom { border-color: var(--sun); padding-right: 22px; }
+  .g-chip-remove {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: var(--cream);
+    border: none;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .g-add-plant-form {
+    display: none;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(0,0,0,0.15);
+    flex-wrap: wrap;
+  }
+  .g-add-plant-form.open { display: flex; }
+  .g-add-plant-form input {
+    font-family: inherit;
+    border: 1.5px solid rgba(0,0,0,0.15);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    background: var(--cream);
+  }
+  .g-add-plant-form input[name="emoji"] { width: 52px; text-align: center; font-size: 16px; }
+  .g-add-plant-form input[name="name"] { width: 140px; }
+  .g-add-plant-hint { font-size: 10.5px; color: #5a6b4f; width: 100%; margin-top: -2px; }
+
+  /* Beds */
+  .g-beds { display: flex; flex-direction: column; gap: 24px; }
+  .g-bed {
+    background: linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.18), inset 0 0 0 2px rgba(0,0,0,0.08);
+  }
+  .g-bed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .g-bed-name {
+    font-family: 'Caveat', cursive;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--cream);
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px dashed rgba(247,242,231,0.5);
+    padding: 0 2px 2px;
+    min-width: 60px;
+    max-width: 220px;
+  }
+  .g-bed-name:focus { outline: none; border-bottom-color: var(--sun); }
+  .g-bed-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--cream);
+  }
+  .g-size-toggle {
+    display: flex;
+    background: rgba(0,0,0,0.2);
+    border-radius: 999px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .g-size-btn {
+    border: none;
+    background: transparent;
+    color: var(--cream);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .g-size-btn.active { background: var(--sun); color: var(--ink); opacity: 1; }
+  .g-size-btn:hover { opacity: 1; }
+
+  .g-remove-bed-btn {
+    padding: 4px 10px;
+    font-size: 10.5px;
+    margin-left: 4px;
+  }
+
+  .g-plot {
+    position: relative;
+    background: var(--soil-dark);
+    border-radius: 10px;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.4);
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.5px);
+    background-size: 22px 22px;
+    width: 100%;
+    margin: 0 auto;
+    transition: max-width 0.2s ease, aspect-ratio 0.2s ease;
+  }
+  .g-plot.size-small { max-width: 320px; aspect-ratio: 4 / 3; }
+  .g-plot.size-medium { max-width: 520px; aspect-ratio: 16 / 9; }
+
+  .g-planted {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    padding: 3px 6px 4px;
+    border-radius: 8px;
+    background: rgba(247, 242, 231, 0.18);
+    max-width: 70px;
+  }
+  .g-planted:active { cursor: grabbing; }
+  .g-planted .g-p-emoji {
+    font-size: clamp(20px, 5vw, 26px);
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+    line-height: 1;
+  }
+  .g-planted .g-p-name {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--cream);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 68px;
+  }
+
+  .g-plot-hover { box-shadow: inset 0 0 0 3px var(--sun), inset 0 3px 8px rgba(0,0,0,0.4); }
+
+  .g-trash {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    background: var(--danger);
+    color: var(--cream);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 50;
+  }
+  .g-trash.g-active { display: flex; }
+  .g-trash.g-hover { background: #7d2f21; transform: scale(1.1); }
+
+  .g-drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+  }
+  .g-drag-ghost .g-p-emoji { font-size: 28px; line-height: 1; }
+  .g-drag-ghost .g-p-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--cream);
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  .g-footnote { text-align: center; font-size: 11px; color: #5a6b4f; margin-top: 18px; opacity: 0.8; }
+
+  @media (max-width: 480px) {
+    .g-title { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div id="garden-root"></div>
+
+<script>
+(function() {
+  const root = document.getElementById('garden-root');
+
+  const fontLink = document.createElement('link');
+  fontLink.rel = 'stylesheet';
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap';
+  document.head.appendChild(fontLink);
+
+  const DEFAULT_PLANTS = [
+    { id: 'tomato', name: 'Tomato', emoji: '🍅' },
+    { id: 'pepper', name: 'Pepper', emoji: '🌶️' },
+    { id: 'lettuce', name: 'Lettuce', emoji: '🥬' },
+    { id: 'carrot', name: 'Carrot', emoji: '🥕' },
+    { id: 'basil', name: 'Basil', emoji: '🌿' },
+    { id: 'cucumber', name: 'Cucumber', emoji: '🥒' },
+    { id: 'strawberry', name: 'Strawberry', emoji: '🍓' },
+    { id: 'sunflower', name: 'Sunflower', emoji: '🌻' },
+    { id: 'onion', name: 'Onion', emoji: '🧅' },
+    { id: 'squash', name: 'Squash', emoji: '🎃' },
+    { id: 'corn', name: 'Corn', emoji: '🌽' },
+    { id: 'pea', name: 'Pea', emoji: '🌱' },
+    { id: 'marigold', name: 'Marigold', emoji: '🌼' },
+    { id: 'eggplant', name: 'Eggplant', emoji: '🍆' },
+    { id: 'garlic', name: 'Garlic', emoji: '🧄' },
+    { id: 'herbflower', name: 'Herb flower', emoji: '🌷' },
+  ];
+
+  const STORAGE_KEY = 'garden-layout-v2';
+
+  function freshState() {
+    return {
+      customPlants: [],
+      beds: [
+        { id: 'bed1', name: 'Box 1', size: 'medium', plants: [] },
+        { id: 'bed2', name: 'Box 2', size: 'medium', plants: [] },
+        { id: 'bed3', name: 'Box 3', size: 'small', plants: [] },
+      ]
+    };
+  }
+
+  let state = freshState();
+  let saveTimeout = null;
+  let hasStorage = !!(window.storage && window.storage.get);
+  let addPlantOpen = false;
+
+  function allPlants() { return DEFAULT_PLANTS.concat(state.customPlants || []); }
+  function plantById(id) { return allPlants().find(p => p.id === id); }
+
+  function setStatus(text) {
+    const el = root.querySelector('.g-save-status');
+    if (el) el.textContent = text;
+  }
+
+  // Migrate old grid-based saves (v1) into free-form layout if encountered.
+  function migrateIfNeeded(parsed) {
+    if (!parsed || !Array.isArray(parsed.beds)) return freshState();
+    parsed.customPlants = parsed.customPlants || [];
+    parsed.beds.forEach(bed => {
+      if (!bed.plants && bed.cells) {
+        const rows = bed.rows || 3, cols = bed.cols || 3;
+        bed.plants = Object.keys(bed.cells).map(key => {
+          const [r, c] = key.split('_').map(Number);
+          return {
+            id: 'p' + Math.random().toString(36).slice(2, 9),
+            plantId: bed.cells[key],
+            x: ((c + 0.5) / cols) * 100,
+            y: ((r + 0.5) / rows) * 100,
+          };
+        });
+        delete bed.cells; delete bed.rows; delete bed.cols;
+      }
+      if (!bed.size) bed.size = 'medium';
+      if (!bed.plants) bed.plants = [];
+    });
+    return parsed;
+  }
+
+  async function loadState() {
+    if (!hasStorage) { render(); return; }
+    setStatus('Loading…');
+    try {
+      const result = await window.storage.get(STORAGE_KEY, false);
+      if (result && result.value) {
+        state = migrateIfNeeded(JSON.parse(result.value));
+      }
+      setStatus('Loaded');
+    } catch (e) {
+      setStatus('New garden');
+    }
+    render();
+  }
+
+  function scheduleSave() {
+    setStatus('Saving…');
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      if (!hasStorage) { setStatus('Not saved'); return; }
+      try {
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
+        setStatus('Saved');
+      } catch (e) {
+        setStatus('Save failed');
+      }
+    }, 400);
+  }
+
+  function getBed(id) { return state.beds.find(b => b.id === id); }
+  function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+  function uid() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function render() {
+    root.innerHTML = `
+      <div class="g-header">
+        <p class="g-title">🌱 Garden Bed Planner</p>
+        <p class="g-subtitle">Drag plants anywhere in a box. Drag a planted item to move it, or to the trash to remove it.
+        To change a new plant's emoji, on Windows: Win + . (period) Mac: Ctrl + Cmd + Space </p>
+      </div>
+      <div class="g-toolbar">
+        <button class="g-btn" data-action="add-bed">+ Add a box</button>
+        <button class="g-btn danger" data-action="clear-all">Clear all plants</button>
+        <span class="g-save-status">Ready</span>
+      </div>
+      <div class="g-palette-wrap">
+        <div class="g-palette-row-label">
+          <p class="g-palette-label">Plant Palette</p>
+          <button class="g-add-plant-toggle" data-action="toggle-add-plant">${addPlantOpen ? 'Close' : '+ Add a plant'}</button>
+        </div>
+        <div class="g-palette">
+          ${allPlants().map(p => `
+            <div class="g-plant-chip ${p.custom ? 'custom' : ''}" data-plant="${p.id}">
+              <span class="g-emoji">${p.emoji}</span><span>${escapeAttr(p.name)}</span>
+              ${p.custom ? `<button class="g-chip-remove" data-action="remove-plant" data-plant="${p.id}">×</button>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        <form class="g-add-plant-form ${addPlantOpen ? 'open' : ''}" id="g-add-plant-form">
+          <input type="text" name="emoji" placeholder="🌸" maxlength="4" required />
+          <input type="text" name="name" placeholder="Plant name" maxlength="20" required />
+          <button type="submit" class="g-btn primary">Add plant</button>
+          <span class="g-add-plant-hint">Tip: tap the emoji field to open your keyboard's emoji picker.</span>
+        </form>
+      </div>
+      <div class="g-beds">
+        ${state.beds.map(bed => renderBed(bed)).join('')}
+      </div>
+      <p class="g-footnote">Your layout saves automatically and will be here next time.</p>
+      <div class="g-trash" id="g-trash-zone">🗑️</div>
+    `;
+    attachEvents();
+  }
+
+  function renderBed(bed) {
+    const plantedHtml = bed.plants.map(inst => {
+      const plant = plantById(inst.plantId);
+      if (!plant) return '';
+      return `
+        <div class="g-planted" style="left:${inst.x}%; top:${inst.y}%;"
+             data-instance="${inst.id}" data-bed="${bed.id}" data-plant="${plant.id}">
+          <span class="g-p-emoji">${plant.emoji}</span>
+          <span class="g-p-name">${escapeAttr(plant.name)}</span>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="g-bed" data-bed-id="${bed.id}">
+        <div class="g-bed-header">
+          <input class="g-bed-name" data-bed="${bed.id}" value="${escapeAttr(bed.name)}" maxlength="24" />
+          <div class="g-bed-controls">
+            <div class="g-size-toggle">
+              <button class="g-size-btn ${bed.size === 'small' ? 'active' : ''}" data-action="set-size" data-size="small" data-bed="${bed.id}">S</button>
+              <button class="g-size-btn ${bed.size === 'medium' ? 'active' : ''}" data-action="set-size" data-size="medium" data-bed="${bed.id}">M</button>
+            </div>
+            <button class="g-btn danger g-remove-bed-btn" data-action="remove-bed" data-bed="${bed.id}">Remove box</button>
+          </div>
+        </div>
+        <div class="g-plot size-${bed.size}" data-bed="${bed.id}">
+          ${plantedHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- Drag logic (pointer-events, works for mouse + touch) ----
+  let dragGhost = null;
+  let dragData = null; // { plantId, sourceBedId, instanceId }
+
+  function createGhost(plant) {
+    const g = document.createElement('div');
+    g.className = 'g-drag-ghost';
+    g.innerHTML = `<span class="g-p-emoji">${plant.emoji}</span><span class="g-p-name">${escapeAttr(plant.name)}</span>`;
+    document.body.appendChild(g);
+    return g;
+  }
+
+  function moveGhost(x, y) {
+    if (dragGhost) { dragGhost.style.left = x + 'px'; dragGhost.style.top = y + 'px'; }
+  }
+
+  function clearHovers() {
+    root.querySelectorAll('.g-plot.g-plot-hover').forEach(el => el.classList.remove('g-plot-hover'));
+    const trash = root.querySelector('#g-trash-zone');
+    if (trash) trash.classList.remove('g-hover');
+  }
+
+  function elementsAtPoint(x, y) { return document.elementsFromPoint(x, y); }
+
+  function startDrag(e, plantId, sourceBedId, instanceId) {
+    e.preventDefault();
+    const point = e.touches ? e.touches[0] : e;
+    const plant = plantById(plantId);
+    dragData = { plantId, sourceBedId, instanceId };
+    dragGhost = createGhost(plant);
+    moveGhost(point.clientX, point.clientY);
+    const trash = root.querySelector('#g-trash-zone');
+    if (sourceBedId && trash) trash.classList.add('g-active');
+
+    function onMove(ev) {
+      const p = ev.touches ? ev.touches[0] : ev;
+      moveGhost(p.clientX, p.clientY);
+      clearHovers();
+      const els = elementsAtPoint(p.clientX, p.clientY);
+      const plotEl = els.find(el => el.classList && el.classList.contains('g-plot'));
+      if (plotEl) plotEl.classList.add('g-plot-hover');
+      const trashEl = els.find(el => el.id === 'g-trash-zone');
+      if (trashEl) trashEl.classList.add('g-hover');
+    }
+
+    function onUp(ev) {
+      const p = ev.changedTouches ? ev.changedTouches[0] : ev;
+      const els = elementsAtPoint(p.clientX, p.clientY);
+      const plotEl = els.find(el => el.classList && el.classList.contains('g-plot'));
+      const trashEl = els.find(el => el.id === 'g-trash-zone');
+
+      if (trashEl && dragData.sourceBedId) {
+        const bed = getBed(dragData.sourceBedId);
+        bed.plants = bed.plants.filter(pl => pl.id !== dragData.instanceId);
+        scheduleSave(); render();
+      } else if (plotEl) {
+        const bedId = plotEl.getAttribute('data-bed');
+        const bed = getBed(bedId);
+        const rect = plotEl.getBoundingClientRect();
+        let xPct = ((p.clientX - rect.left) / rect.width) * 100;
+        let yPct = ((p.clientY - rect.top) / rect.height) * 100;
+        xPct = Math.max(6, Math.min(94, xPct));
+        yPct = Math.max(8, Math.min(92, yPct));
+
+        if (dragData.sourceBedId && dragData.instanceId) {
+          const oldBed = getBed(dragData.sourceBedId);
+          const inst = oldBed.plants.find(pl => pl.id === dragData.instanceId);
+          if (inst) {
+            if (dragData.sourceBedId === bedId) {
+              inst.x = xPct; inst.y = yPct;
+            } else {
+              oldBed.plants = oldBed.plants.filter(pl => pl.id !== dragData.instanceId);
+              bed.plants.push({ id: uid(), plantId: dragData.plantId, x: xPct, y: yPct });
+            }
+          }
+        } else {
+          bed.plants.push({ id: uid(), plantId: dragData.plantId, x: xPct, y: yPct });
+        }
+        scheduleSave(); render();
+      }
+      cleanup();
+    }
+
+    function cleanup() {
+      if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+      clearHovers();
+      const trash = root.querySelector('#g-trash-zone');
+      if (trash) trash.classList.remove('g-active');
+      dragData = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    }
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+  }
+
+  function attachEvents() {
+    root.querySelectorAll('.g-plant-chip').forEach(chip => {
+      const plantId = chip.getAttribute('data-plant');
+      chip.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.g-chip-remove')) return;
+        startDrag(e, plantId, null, null);
+      });
+      chip.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.g-chip-remove')) return;
+        startDrag(e, plantId, null, null);
+      }, { passive: false });
+    });
+
+    root.querySelectorAll('.g-planted').forEach(el => {
+      const plantId = el.getAttribute('data-plant');
+      const bedId = el.getAttribute('data-bed');
+      const instanceId = el.getAttribute('data-instance');
+      el.addEventListener('pointerdown', (e) => { e.stopPropagation(); startDrag(e, plantId, bedId, instanceId); });
+      el.addEventListener('touchstart', (e) => { e.stopPropagation(); startDrag(e, plantId, bedId, instanceId); }, { passive: false });
+    });
+
+    root.querySelectorAll('.g-bed-name').forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const bed = getBed(e.target.getAttribute('data-bed'));
+        bed.name = e.target.value || bed.name;
+        scheduleSave();
+      });
+    });
+
+    const addForm = root.querySelector('#g-add-plant-form');
+    if (addForm) {
+      addForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const emoji = addForm.emoji.value.trim();
+        const name = addForm.name.value.trim();
+        if (!emoji || !name) return;
+        state.customPlants = state.customPlants || [];
+        state.customPlants.push({ id: 'custom-' + uid(), name, emoji, custom: true });
+        addPlantOpen = false;
+        scheduleSave(); render();
+      });
+    }
+
+    root.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = btn.getAttribute('data-action');
+        const bedId = btn.getAttribute('data-bed');
+        if (action === 'add-bed') {
+          const n = state.beds.length + 1;
+          state.beds.push({ id: 'bed' + Date.now(), name: 'Box ' + n, size: 'medium', plants: [] });
+          scheduleSave(); render();
+        } else if (action === 'clear-all') {
+          state.beds.forEach(b => b.plants = []);
+          scheduleSave(); render();
+        } else if (action === 'remove-bed') {
+          state.beds = state.beds.filter(b => b.id !== bedId);
+          scheduleSave(); render();
+        } else if (action === 'set-size') {
+          const bed = getBed(bedId);
+          bed.size = btn.getAttribute('data-size');
+          scheduleSave(); render();
+        } else if (action === 'toggle-add-plant') {
+          addPlantOpen = !addPlantOpen;
+          render();
+        } else if (action === 'remove-plant') {
+          const plantId = btn.getAttribute('data-plant');
+          state.customPlants = (state.customPlants || []).filter(p => p.id !== plantId);
+          // also remove any planted instances of this plant
+          state.beds.forEach(b => { b.plants = b.plants.filter(pl => pl.plantId !== plantId); });
+          scheduleSave(); render();
+        }
+      });
+    });
+  }
+
+  loadState();
+})();
+</script>
+</body>
+</html>
